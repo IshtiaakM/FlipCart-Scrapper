@@ -18,12 +18,18 @@ async def main(query="smartphones", max_pages= int(input("enter how many page yo
        
         for i in range(1, max_pages+1):
             soup = BeautifulSoup(contents, 'lxml')
-            all_item_details = soup.find_all('div', class_ = 'cPHDOP.col-12-12')
+            all_item_details = soup.select('div._75nlfW')
 
 
             for item in all_item_details:
-                phone_name = item.find('div', class_ = "KzDlHZ").text
-                print(phone_name)
+                phone_name = item.find('div', class_ = "KzDlHZ")
+                img_tag = item.find('img', class_ = "DByuf4")["src"]
+                price = item.find("div" , class_ = ["Nx9bqj","_4b5DiR"])
+                print(f"{phone_name.text} [link] : {img_tag}")
+                # print(f"price {price.text}")
+                print(f"price {price.get_text()}")
+
+                
            
             await page.goto(f"https://www.flipkart.com/search?q={query}&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off&page={i}")
             contents = await page.content()
