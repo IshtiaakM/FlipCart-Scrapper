@@ -14,12 +14,12 @@ async def main(query="smartphones", max_pages= int(input("enter how many page yo
 
         await page.wait_for_selector('div.cPHDOP.col-12-12')  
         contents = []
-        contents.append(page.content())
+        contents.append(await page.content())
        
         for i in range(1, max_pages+1):
            
             await page.goto(f"https://www.flipkart.com/search?q={query}&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off&page={i}")
-            contents.append(page.content())
+            contents.append(await page.content())
 
 
         print(contents)
