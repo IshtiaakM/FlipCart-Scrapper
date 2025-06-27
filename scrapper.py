@@ -24,17 +24,14 @@ def insert_products(title, img_url, price):
     c.execute("""
      INSERT INTO product_info (title, image_url, price, created_at)
      VALUES (?, ?, ?, ?)""",
-     (title, img_url, price, datetime.now())
+     (title, img_url, price, datetime.now().isoformat())
     )
     conn.commit()
 
 async def intercept(route, request):
             resource_type = request.resource_type
-            # url = request.url
-        
             # unwanted_resources = ["image","stylesheet", "font", "media"]
-            unwanted_resources = ['image','font']
-
+            unwanted_resources = ['image','font','media']
             if resource_type in unwanted_resources:
                 # print(f"Blocking resource type {resource_type}: {url}")
                 await route.abort()
@@ -45,18 +42,19 @@ async def pagitation(browser,page_no,query):
      page = await browser.new_page()
      await page.route("**/*",intercept)
      await page.goto(f"https://www.flipkart.com/search?q={query}&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off&page={page_no}")
-     await page.wait_for_selector('div.cPHDOP.col-12-12')
      contents = await page.content()
      await page.close()
      return contents
 
+
 async def scrap_data(contents):
      soup = BeautifulSoup(contents, 'lxml')
-     all_item_details = soup.select('div._75nlfW')
+     all_item_details = soup.select('div.tUxRFH')
      for item in all_item_details:
         phone_name = item.find('div', class_ = "KzDlHZ").get_text()
         img_tag = item.find('img', class_ = "DByuf4")["src"]
         price = item.find("div" , class_ = ["Nx9bqj","_4b5DiR"]).get_text()
+        price =  int(price.split("₹")[-1].replace(",",""))
         print(phone_name, price)
         insert_products(phone_name,img_tag,price)
 
@@ -82,9 +80,7 @@ async def main(query="smartphones", max_pages= int(input("enter how many page yo
                      content = await pagitation(browser,current_page,query)
                      tg.create_task(scrap_data(content))
                      
-
         print(f"All the info related to {query} are fetched.")
-
 
 
 asyncio.run(main())
