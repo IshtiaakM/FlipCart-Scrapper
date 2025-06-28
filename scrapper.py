@@ -52,7 +52,7 @@ class FlipkartScraper(Scraper):
     async def intercept(self, route, request):
         resource_type = request.resource_type
         url = request.url.split('?')[0]
-        unwanted_resources = ["stylesheet", "font", "media"]
+        unwanted_resources = ["stylesheet", "font"]
         if resource_type in unwanted_resources:
             await route.abort()
         elif resource_type == "image" and not url.endswith('.jpeg'):
@@ -78,14 +78,37 @@ class FlipkartScraper(Scraper):
 
     async def scrap_data(self, contents):
         soup = BeautifulSoup(contents, 'lxml')
-        all_item_details = soup.select('div.tUxRFH')
+        all_item_details = soup.select('div._75nlfW')
         for item in all_item_details:
             try:
-                phone_name = item.find('div', class_="KzDlHZ").get_text()
-                img_tag = item.find('img', class_="DByuf4")["src"]
-                price_text = item.find("div", class_=["Nx9bqj", "_4b5DiR"]).get_text()
-                price = int(price_text.split("₹")[-1].replace(",", ""))
-                self._db.insert_products(phone_name, img_tag, price)
+                product_cards = item.find_all('div', attrs={'data-id': True})
+                if len(product_cards) == 1:
+                    name = item.find('div', class_ = "KzDlHZ").get_text()
+                    url = item.find('img', class_ = "DByuf4")["src"]
+                    price_text = item.find("div", class_=["Nx9bqj", "_4b5DiR"]).get_text()
+                    price = price_text.split("₹")[-1]
+                    if len(price)>3:
+                        price = int(price.replace(',', ''))
+                    else:
+                        price = int(price)
+                    self._db.insert_products(name, url, price)
+        
+
+                else:
+                    for card in product_cards:
+                        a_tag = card.find('a', title=True)
+                        name = a_tag['title'] if a_tag else "N/A"
+                        img_tag = card.find('img', src=True)
+                        url = img_tag['src'] if img_tag else "N/A"
+                        price_tag = card.find('div', class_='Nx9bqj')
+                        if price_tag:
+                            price_text = price_tag.get_text().strip()
+                            price = int(price_text.replace('₹', '').replace(',', ''))
+                        
+                        else:
+                            price = 0
+                        self._db.insert_products(name, url, price)
+
             except Exception as e:
                 print(f"Could not scrap an item: {e}")
 
@@ -96,7 +119,7 @@ class FlipkartScraper(Scraper):
             page = await browser.new_page()
             await page.route("**/*", self.intercept)
             
-            print(f"Starting to scrape Flipkart for '{self._query}'...")
+            print(f"\nStarting to scrape Flipkart for '{self._query}'...")
             await page.goto("https://www.flipkart.com/")
             await page.wait_for_selector('input[name="q"]')
             await page.fill('input[name="q"]', self._query)
@@ -124,8 +147,8 @@ class FlipkartScraper(Scraper):
 async def main():
     try:
         database = Database()
-        query = input("Enter your search item > ")
-        max_pages = int(input("\nEnter how many pages you want to scrape > "))
+        query = input("\nEnter your search item > ")
+        max_pages = int(input("Enter how many pages you want to scrape > "))
         if max_pages <= 0:
             print("Enter a positive number.")
             return
