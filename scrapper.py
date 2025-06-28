@@ -30,11 +30,13 @@ def insert_products(title, img_url, price):
 
 async def intercept(route, request):
             resource_type = request.resource_type
-            # unwanted_resources = ["image","stylesheet", "font", "media"]
-            unwanted_resources = ['image','font','media']
+            url = request.url
+            clean_url = url.split('?')[0]
+            unwanted_resources = ["stylesheet", "font", "media"]
             if resource_type in unwanted_resources:
-                # print(f"Blocking resource type {resource_type}: {url}")
                 await route.abort()
+            elif resource_type == "image" and not clean_url.endswith('.jpeg'):
+                 await route.abort()
             else:
                 await route.continue_()
 
@@ -54,8 +56,7 @@ async def scrap_data(contents):
         phone_name = item.find('div', class_ = "KzDlHZ").get_text()
         img_tag = item.find('img', class_ = "DByuf4")["src"]
         price = item.find("div" , class_ = ["Nx9bqj","_4b5DiR"]).get_text()
-        price =  int(price.split("₹")[-1].replace(",",""))
-        print(phone_name, price)
+        price =  int(price.split("₹")[-1].replace("," , ""))
         insert_products(phone_name,img_tag,price)
 
 
@@ -77,8 +78,7 @@ async def main(query="smartphones", max_pages= int(input("enter how many page yo
                 if current_page == 1:
                     tg.create_task(scrap_data(contents))
                 else:
-                     content = await pagitation(browser,current_page,query)
-                     tg.create_task(scrap_data(content))
+                     tg.create_task(scrap_data( await pagitation(browser,current_page,query) ))
                      
         print(f"All the info related to {query} are fetched.")
 
