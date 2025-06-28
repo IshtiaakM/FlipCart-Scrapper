@@ -36,7 +36,7 @@ Flipkart Harvester is an asynchronous Python script tool that automates the proc
 1. **Clone the repository**
    ```bash
    git clone https://github.com/IshtiaakM/FlipKart-Harvester.git
-   cd flipkart-scraper
+   cd flipkart-Harvester
    ```
 
 2. **Create & activate a virtual environment (recommended)**  
